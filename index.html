@@ -1,14 +1,462 @@
-<!doctype html>
-<html lang="vi"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Life OS</title>
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/glass.css">
-</head><body>
-<div id="island" class="glass"></div>
-<div class="app">
-  <nav id="nav" class="glass"></nav>
-  <main id="view"></main>
-</div>
-<script type="module" src="js/main.js"></script>
-</body></html>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Khởi Động: Ô Chữ Bí Mật - ĐH Cần Thơ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f6efe2;
+            --ink-brown: #3e2723;
+            --stamp-red: #7a1f18;
+            --ctu-blue: #005baa;
+            --ctu-cyan: #00a0e9;
+            --ctu-gold: #c59b27;
+            --border-vintage: #c7b299;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #e8dec8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.94 0 1 0 0 0.89 0 0 1 0 0.80 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23paper)' opacity='0.6'/%3E%3C/svg%3E");
+            color: var(--ink-brown);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #game-viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 36px 85px;
+        }
+
+        .cw-board-wrap {
+            background: #fbf7ee;
+            border: 2px solid var(--border-vintage);
+            border-radius: 12px;
+            padding: 20px 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 1080px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cw-clue-top-bar {
+            width: 100%;
+            background: #f3ece0;
+            border: 2px solid var(--border-vintage);
+            border-left: 8px solid var(--stamp-red);
+            padding: 16px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .cw-question-prominent {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--ink-brown);
+            line-height: 1.45;
+        }
+
+        .cw-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 6px;
+        }
+
+        .cw-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .cw-row:hover { background: rgba(0, 91, 170, 0.08); }
+        .cw-row.active-row { background: rgba(0, 91, 170, 0.15); }
+
+        .cw-row-label {
+            width: 28px;
+            font-weight: 800;
+            color: var(--stamp-red);
+            text-align: right;
+            margin-right: 8px;
+            font-size: 0.95rem;
+        }
+
+        .cw-box {
+            width: 38px;
+            height: 38px;
+            background: #fff;
+            border: 1.5px solid #a89f91;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--ink-brown);
+            text-transform: uppercase;
+            transition: all 0.25s;
+        }
+
+        .cw-box.key-cell {
+            background: #fef08a;
+            border-color: #ca8a04;
+        }
+
+        .cw-box.revealed {
+            background: #e0f2fe;
+            border-color: var(--ctu-blue);
+            transform: scale(1.05);
+        }
+
+        .cw-box.revealed.key-cell {
+            background: #fde047;
+            border-color: #b45309;
+            color: #78350f;
+            box-shadow: 0 0 10px rgba(202, 138, 4, 0.5);
+        }
+
+        .btn-vintage {
+            background: var(--stamp-red);
+            color: #fff;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(122, 31, 24, 0.25);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-vintage:hover { opacity: 0.92; transform: translateY(-1px); }
+
+        #ctu-bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%; height: 72px;
+            background: #ffffff;
+            border-top: 2px solid var(--ctu-blue);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.06);
+            z-index: 1000;
+        }
+
+        .ctu-brand { display: flex; align-items: center; gap: 12px; }
+        .ctu-logo-svg { width: 44px; height: 44px; flex-shrink: 0; }
+        .ctu-titles { display: flex; flex-direction: column; }
+        .ctu-main-title { font-size: 1.05rem; font-weight: 800; color: var(--ctu-blue); }
+        .ctu-slogan { font-size: 0.75rem; color: var(--ctu-cyan); font-weight: 600; }
+
+        .floating-pill {
+            display: flex; align-items: center;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 999px;
+            padding: 5px 12px; gap: 8px;
+            position: absolute; left: 50%; top: -24px;
+            transform: translateX(-50%);
+        }
+
+        .pill-btn {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: 700; font-size: 1rem;
+            color: #334155; transition: all 0.2s;
+        }
+
+        .pill-btn:hover { background: var(--ctu-blue); color: #fff; border-color: var(--ctu-blue); }
+        .pill-divider { width: 1px; height: 20px; background: #cbd5e1; }
+
+        .progress-rail {
+            position: absolute; bottom: 34px; left: 280px; right: 220px;
+            height: 4px; background: #e2e8f0; border-radius: 2px;
+        }
+
+        .progress-fill {
+            height: 100%; background: var(--ctu-cyan); width: 0%;
+            transition: width 0.3s ease; position: relative;
+        }
+
+        .diamond-marker {
+            position: absolute; right: -7px; top: -5px;
+            width: 14px; height: 14px; background: var(--ctu-blue);
+            transform: rotate(45deg); border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .ctu-web { font-size: 0.9rem; font-weight: 700; color: var(--ctu-blue); text-decoration: none; }
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <main id="game-viewport">
+        <h2 style="font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--ink-brown); margin-bottom: 12px;">
+            TRÒ CHƠI: Ô CHỮ BÍ MẬT
+        </h2>
+
+        <div class="cw-board-wrap">
+            <div class="cw-clue-top-bar">
+                <div id="cw-clue-text" class="cw-question-prominent">
+                    👉 Bấm nút &gt; trên thanh điều khiển để mở hàng đầu tiên.
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-vintage" onclick="revealCurrentRow()">Mở Hàng Này</button>
+                    <button class="btn-vintage" style="background: var(--ctu-gold);" onclick="revealAllRows()">Mở Tất Cả</button>
+                </div>
+            </div>
+
+            <div class="cw-grid" id="cw-grid-body"></div>
+        </div>
+    </main>
+
+    <footer id="ctu-bottom-bar">
+        <div class="ctu-brand">
+            <svg class="ctu-logo-svg" viewBox="0 0 100 100">
+                <polygon points="50,2 98,50 50,98 2,50" fill="#005baa" stroke="#00a0e9" stroke-width="3"/>
+                <polygon points="50,8 92,50 50,92 8,50" fill="none" stroke="#ffffff" stroke-width="2"/>
+                <circle cx="50" cy="50" r="24" fill="none" stroke="#facc15" stroke-dasharray="6,3" stroke-width="5"/>
+                <path d="M48,34 L52,34 L54,58 L46,58 Z" fill="#ffffff"/>
+                <path d="M44,32 Q50,18 56,32 Q50,24 44,32 Z" fill="#ef4444"/>
+                <text x="50" y="85" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="900" font-family="'Be Vietnam Pro', sans-serif">ĐẠI HỌC CẦN THƠ</text>
+            </svg>
+            <div class="ctu-titles">
+                <span class="ctu-main-title">ĐẠI HỌC CẦN THƠ</span>
+                <span class="ctu-slogan">Cộng đồng - Toàn diện - Ưu việt</span>
+            </div>
+        </div>
+
+        <div class="progress-rail">
+            <div class="progress-fill" id="ctu-progress-rail-fill">
+                <div class="diamond-marker"></div>
+            </div>
+        </div>
+
+        <div class="floating-pill">
+            <button class="pill-btn" onclick="handleSmartPrev()" title="Lùi lại">‹</button>
+            <button class="pill-btn" onclick="handleSmartNext()" title="Tiến tới">›</button>
+            <div class="pill-divider"></div>
+            <button class="pill-btn" onclick="toggleFullScreen()" title="Toàn màn hình (F)">⛶</button>
+        </div>
+
+        <a href="https://www.ctu.edu.vn" target="_blank" class="ctu-web">www.ctu.edu.vn</a>
+    </footer>
+
+    <script>
+        const crosswordRows = [
+            { letters: ["N","E","W","T","O","N"], keyIdx: 0, clue: "1. Nhà bác học vĩ đại người Anh tìm ra 3 định luật chuyển động và vạn vật hấp dẫn?" },
+            { letters: ["H","A","W","K","I","N","G"], keyIdx: 0, clue: "2. Nhà vật lý lý thuyết kiệt xuất viết 'Lược sử thời gian', cống hiến trọn đời trên xe lăn?" },
+            { letters: ["T","Â","M","L","Ý"], keyIdx: 1, clue: "3. Tên học phần nghiên cứu về các hiện tượng tâm lý, nhân cách và hành vi con người?" },
+            { letters: ["N","Ă","N","G","L","Ự","C"], keyIdx: 0, clue: "4. Tổ hợp thuộc tính tâm lý độc đáo giúp con người hoàn thành xuất sắc hoạt động?" },
+            { letters: ["L","I","Ê","M","C","H","Í","N","H"], keyIdx: 4, clue: "5. Phẩm chất của Newton khi làm Giám sát Xưởng đúc tiền: kiên quyết chống nạn tiền giả?" },
+            { letters: ["S","Á","N","G","T","Ạ","O"], keyIdx: 1, clue: "6. Năng lực giúp Newton phát minh kính thiên văn phản xạ và Hawking tìm ra bức xạ hố đen?" },
+            { letters: ["Ý","C","H","Í"], keyIdx: 1, clue: "7. Phẩm chất tâm lý giúp cả hai thiên tài kiên cường vượt qua nghịch cảnh và bệnh tật?" },
+            { letters: ["T","H","I","Ê","N","T","À","I"], keyIdx: 1, clue: "8. Danh xưng dành cho những người có trí tuệ xuất chúng và cống hiến làm thay đổi nhân loại?" }
+        ];
+
+        let selectedCwRowIdx = 0;
+
+        function buildCrossword() {
+            const grid = document.getElementById('cw-grid-body');
+            grid.innerHTML = '';
+
+            crosswordRows.forEach((rowObj, rIdx) => {
+                const rowEl = document.createElement('div');
+                rowEl.className = `cw-row ${rIdx === 0 ? 'active-row' : ''}`;
+                rowEl.onclick = () => chooseCwRow(rIdx);
+
+                const numEl = document.createElement('div');
+                numEl.className = 'cw-row-label';
+                numEl.innerText = `${rIdx + 1}.`;
+                rowEl.appendChild(numEl);
+
+                const maxPreKey = 4;
+                const offset = maxPreKey - rowObj.keyIdx;
+                for (let i = 0; i < offset; i++) {
+                    const spacer = document.createElement('div');
+                    spacer.style.width = '38px';
+                    spacer.style.height = '38px';
+                    rowEl.appendChild(spacer);
+                }
+
+                rowObj.letters.forEach((char, cIdx) => {
+                    const box = document.createElement('div');
+                    box.className = `cw-box ${cIdx === rowObj.keyIdx ? 'key-cell' : ''}`;
+                    box.id = `cw-box-${rIdx}-${cIdx}`;
+                    box.dataset.char = char;
+                    rowEl.appendChild(box);
+                });
+
+                grid.appendChild(rowEl);
+            });
+
+            chooseCwRow(0);
+        }
+
+        function chooseCwRow(idx) {
+            selectedCwRowIdx = idx;
+            document.querySelectorAll('.cw-row').forEach((r, i) => {
+                r.classList.toggle('active-row', i === idx);
+            });
+            document.getElementById('cw-clue-text').innerText = crosswordRows[idx].clue;
+            updateProgress();
+            playBeep(520, 0.03);
+        }
+
+        function updateProgress() {
+            const pct = (selectedCwRowIdx / (crosswordRows.length - 1)) * 100;
+            document.getElementById('ctu-progress-rail-fill').style.width = `${pct}%`;
+        }
+
+        function checkAllRevealed() {
+            let all = true;
+            crosswordRows.forEach((row, r) => {
+                if (!document.getElementById(`cw-box-${r}-0`).classList.contains('revealed')) all = false;
+            });
+            if (all) {
+                setTimeout(triggerConfetti, 300);
+            }
+        }
+
+        function revealCurrentRow() {
+            const rowObj = crosswordRows[selectedCwRowIdx];
+            rowObj.letters.forEach((char, cIdx) => {
+                const box = document.getElementById(`cw-box-${selectedCwRowIdx}-${cIdx}`);
+                box.innerText = char;
+                box.classList.add('revealed');
+            });
+            playChime();
+            checkAllRevealed();
+        }
+
+        function revealAllRows() {
+            crosswordRows.forEach((rowObj, rIdx) => {
+                rowObj.letters.forEach((char, cIdx) => {
+                    const box = document.getElementById(`cw-box-${rIdx}-${cIdx}`);
+                    box.innerText = char;
+                    box.classList.add('revealed');
+                });
+            });
+            playChime();
+            setTimeout(triggerConfetti, 200);
+        }
+
+        function handleSmartNext() {
+            const isRevealed = document.getElementById(`cw-box-${selectedCwRowIdx}-0`).classList.contains('revealed');
+            if (!isRevealed) {
+                revealCurrentRow();
+            } else if (selectedCwRowIdx < crosswordRows.length - 1) {
+                chooseCwRow(selectedCwRowIdx + 1);
+            }
+        }
+
+        function handleSmartPrev() {
+            if (selectedCwRowIdx > 0) {
+                chooseCwRow(selectedCwRowIdx - 1);
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') handleSmartNext();
+            if (e.key === 'ArrowLeft') handleSmartPrev();
+            if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep(freq, dur) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.value = freq; gain.gain.value = 0.04;
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e){}
+        }
+
+        function playChime() {
+            try {
+                [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+                    setTimeout(() => playBeep(f, 0.1), i * 70);
+                });
+            } catch(e){}
+        }
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerConfetti() {
+            particles = [];
+            const colors = ['#005baa', '#00a0e9', '#f59e0b', '#7a1f18', '#2e7d32'];
+            for (let i = 0; i < 130; i++) {
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 16, vy: (Math.random() - 0.7) * 18,
+                    size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, idx) => {
+                p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.alpha -= 0.015;
+                ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+            if (particles.length > 0) requestAnimationFrame(animateConfetti);
+            else ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.onload = () => { buildCrossword(); };
+    </script>
+</body>
+</html>
